@@ -36,8 +36,8 @@
   </properties>
 
   <scm>
-    <connection>http://github.com/jdcasey/build-migration-maven-plugin.git</connection>
-    <developerConnection>git@github.com:jdcasey/build-migration-maven-plugin.git</developerConnection>
+    <connection>scm:git:http://github.com/jdcasey/build-migration-maven-plugin.git</connection>
+    <developerConnection>scm:git://git@github.com:jdcasey/build-migration-maven-plugin.git</developerConnection>
     <url>http://github.com/jdcasey/build-migration-maven-plugin</url>
   </scm>
 
