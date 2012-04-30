@@ -3,8 +3,8 @@ Build Migration Maven Plugin
 
 This plugin is meant to be a small collection of helpers to smooth the migration path from another build system, like Ant, to Maven. The plugins will probably all be very simple, yet they will address use cases that are currently not supported by any plugin, or are excessively complicated to configure.
 
-`main-artifact`
----------------
+The `main-artifact` Goal
+------------------------
 
 The `main-artifact` goal simply sets the file of the project's main artifact.
 
