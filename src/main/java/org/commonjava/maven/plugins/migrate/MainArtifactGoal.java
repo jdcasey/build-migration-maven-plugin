@@ -24,11 +24,10 @@ import org.apache.maven.plugin.logging.SystemStreamLog;
 import org.apache.maven.project.MavenProject;
 
 import java.io.File;
-import java.nio.channels.FileChannel;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-
+import java.nio.channels.FileChannel;
 
 /**
  * Sets the main artifact for the current project to some specified file. This is useful for Maven
@@ -54,6 +53,28 @@ public class MainArtifactGoal
      */
     private MavenProject project;
 
+    /**
+     * @parameter default-value="${project.build.directory}"
+     * @readonly
+     */
+    private File targetDir;
+
+    /**
+     * @parameter default-value="${project.build.finalName}"
+     * @readonly
+     */
+    private String finalName;
+
+    /**
+     * @parameter expression="${mainArtifact.copyLocal}" default-value="true"
+     */
+    private final boolean copyLocal = true;
+
+    /**
+     * @parameter expression="${mainArtifact.failIfMissing}" default-value="false"
+     */
+    private boolean failIfMissing;
+
     private Log log;
 
     public void execute()
@@ -72,23 +93,35 @@ public class MainArtifactGoal
                 getLog().warn( "NOTE: Discarding pre-existing main-artifact file:\n  "
                     + project.getArtifact().getFile() );
             }
-            if (existing != null)
+
+            if ( copyLocal )
             {
-                String parent = existing.getParent ();
-                File dest = new File (new StringBuilder (parent).append (File.separator).append (project.getArtifact ().getArtifactId ()).append ('-').append (project.getArtifact ().getVersion ()).append ('.').append (project.getArtifact ().getType ()).toString ());
+                final String ext = project.getArtifact().getArtifactHandler().getExtension();
+                final File dest = new File( targetDir, finalName + "." + ext );
 
-                getLog().info( "Setting '" + dest + " for project: " + project.getId());
+                getLog().info( "Copying main artifact from: " + mainArtifact + " to: " + dest + " for project: "
+                    + project.getId() );
 
-                copyFile (mainArtifact, dest);
+                copyFile( mainArtifact, dest );
 
                 project.getArtifact().setFile( dest );
             }
             else
             {
-                getLog().info( "Setting '" + mainArtifact + "' as main artifact file (" +  project.getArtifact().getFile() + ") for project: " + project.getId() );
+                getLog().info( "Setting '" + mainArtifact + "' as main artifact file ("
+                    + project.getArtifact().getFile() + ") for project: " + project.getId() );
 
                 project.getArtifact().setFile( mainArtifact );
             }
+        }
+        else if ( failIfMissing )
+        {
+            throw new MojoFailureException( "Cannot find main-artifact source: '" + mainArtifact + "'" );
+        }
+        else
+        {
+            getLog().warn( "CANNOT FIND: " + mainArtifact + ". NOT setting main artifact for project: "
+                + project.getId() );
         }
     }
 
@@ -107,7 +140,7 @@ public class MainArtifactGoal
         this.log = log;
     }
 
-    private void copyFile (File sourceFile, File destFile)
+    private void copyFile( final File sourceFile, final File destFile )
         throws MojoExecutionException, MojoFailureException
     {
         FileChannel source = null;
@@ -115,36 +148,38 @@ public class MainArtifactGoal
 
         try
         {
-            if ( ! destFile.exists () )
+            if ( !destFile.exists() )
             {
-                destFile.createNewFile ();
+                destFile.createNewFile();
             }
 
-            source = new FileInputStream (sourceFile).getChannel ();
-            dest   = new FileOutputStream (destFile).getChannel ();
+            source = new FileInputStream( sourceFile ).getChannel();
+            dest = new FileOutputStream( destFile ).getChannel();
 
-            dest.transferFrom (source, 0, source.size ());
+            dest.transferFrom( source, 0, source.size() );
         }
-        catch (IOException e)
+        catch ( final IOException e )
         {
-            throw new MojoFailureException ("Failed to copy artifact " + e);
+            throw new MojoFailureException( "Failed to copy artifact from: " + sourceFile + " to: " + destFile
+                + ". Reason: " + e, e );
         }
         finally
         {
             try
             {
-                if (source != null)
+                if ( source != null )
                 {
-                    source.close ();
+                    source.close();
                 }
-                if (dest != null)
+                if ( dest != null )
                 {
-                    dest.close ();
+                    dest.close();
                 }
             }
-            catch (IOException e)
+            catch ( final IOException e )
             {
-                throw new MojoFailureException ("Failed to copy artifact " + e);
+                throw new MojoFailureException( "Failed to copy artifact from: " + sourceFile + " to: " + destFile
+                    + ". Reason: " + e, e );
             }
         }
     }
