@@ -30,7 +30,7 @@ This can be useful if you're wrapping another build system's output with Maven p
               </execution>
             </executions>
           </plugin>
-          
+
           <plugin>
             <groupId>org.commonjava.maven.plugins</groupId>
             <artifactId>build-migration-maven-plugin</artifactId>
@@ -65,5 +65,14 @@ By default, the `main-artifact` goal will run in the `package` phase, which mean
 
 This tells the jar plugin to skip all classes, and then skip building the jar (since it would be empty).
 
-                
-                  
+Another way would be to bind the maven-jar-plugin to a disabled phase:
+
+    <plugin>
+      <artifactId>maven-jar-plugin</artifactId>
+      <executions>
+        <execution>
+          <id>default-jar</id>
+          <phase>DISABLED</phase>
+         </execution>
+       </executions>
+     </plugin>
