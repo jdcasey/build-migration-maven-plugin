@@ -93,11 +93,11 @@ public class MainArtifactGoal
                 getLog().warn( "NOTE: Discarding pre-existing main-artifact file:\n  "
                     + project.getArtifact().getFile() );
             }
-
             if ( copyLocal )
             {
                 final String ext = project.getArtifact().getArtifactHandler().getExtension();
                 final File dest = new File( targetDir, finalName + "." + ext );
+                targetDir.mkdirs ();
 
                 getLog().info( "Copying main artifact from: " + mainArtifact + " to: " + dest + " for project: "
                     + project.getId() );
