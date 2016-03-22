@@ -16,66 +16,70 @@
 
 package org.commonjava.maven.plugins.migrate;
 
-import org.apache.maven.plugin.Mojo;
+import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.plugin.logging.SystemStreamLog;
+import org.apache.maven.plugins.annotations.Component;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.project.MavenProjectHelper;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Sets the main artifact for the current project to some specified file. This is useful for Maven
  * builds that simply wrap another build system, such that the wrapped system produces the project
  * artifact, and Maven needs a way to capture it for installation and deployment.
- *
- * @goal main-artifact
- * @phase package
  */
-public class MainArtifactGoal
-    implements Mojo
+@Mojo( name = "main-artifact", defaultPhase = LifecyclePhase.PACKAGE )
+public class MainArtifactGoal extends AbstractMojo
 {
     /**
      * The file that should be captured as the current project's main artifact output.
-     *
-     * @parameter
-     * @required
      */
+    @Parameter ( required = true )
     private File mainArtifact;
 
     /**
-     * @parameter default-value="${project}"
+     * The file that should be captured as the current project's main pom output.
      */
+    @Parameter
+    private File mainPom;
+
+    /**
+     * Maven ProjectHelper.
+     */
+    @Component
+    private MavenProjectHelper projectHelper;
+
+    @Parameter (defaultValue = "${project}", readonly = true)
     private MavenProject project;
 
-    /**
-     * @parameter default-value="${project.build.directory}"
-     * @readonly
-     */
+    @Parameter ( defaultValue="${project.build.directory}", readonly = true )
     private File targetDir;
 
-    /**
-     * @parameter default-value="${project.build.finalName}"
-     * @readonly
-     */
+    @Parameter ( defaultValue="${project.build.finalName}", readonly = true )
     private String finalName;
 
-    /**
-     * @parameter expression="${mainArtifact.copyLocal}" default-value="true"
-     */
+    @Parameter (  property="mainArtifact.copyLocal" , defaultValue = "true" )
     private final boolean copyLocal = true;
 
-    /**
-     * @parameter expression="${mainArtifact.failIfMissing}" default-value="false"
-     */
+    @Parameter( property="mainArtifact.failIfMissing", defaultValue = "false")
     private boolean failIfMissing;
 
-    private Log log;
+    /**
+     * Attach an array of artifacts to the project.
+     */
+    @Parameter
+    private Artifact[] artifacts;
 
     public void execute()
         throws MojoExecutionException, MojoFailureException
@@ -84,6 +88,7 @@ public class MainArtifactGoal
         {
             if ( mainArtifact.isDirectory() )
             {
+                getLog().error( "Main artifact " + mainArtifact + " is a directory." );
                 throw new MojoFailureException( "You are not allowed to set the main-artifact to a directory! Directories cannot be installed or deployed properly." );
             }
 
@@ -105,6 +110,12 @@ public class MainArtifactGoal
                 copyFile( mainArtifact, dest );
 
                 project.getArtifact().setFile( dest );
+
+                if (mainPom.exists())
+                {
+                    getLog().info( "Replacing mainPom " + project.getFile() + " with " + mainPom );
+                    project.setFile( mainPom );
+                }
             }
             else
             {
@@ -112,7 +123,13 @@ public class MainArtifactGoal
                     + project.getArtifact().getFile() + ") for project: " + project.getId() );
 
                 project.getArtifact().setFile( mainArtifact );
-            }
+
+                if (mainPom.exists())
+                {
+                    getLog().info( "Replacing mainPom " + project.getFile() + " with " + mainPom );
+                    project.setFile( mainPom );
+                }
+           }
         }
         else if ( failIfMissing )
         {
@@ -123,21 +140,13 @@ public class MainArtifactGoal
             getLog().warn( "CANNOT FIND: " + mainArtifact + ". NOT setting main artifact for project: "
                 + project.getId() );
         }
-    }
 
-    public synchronized Log getLog()
-    {
-        if ( log == null )
+        for ( Artifact artifact : artifacts )
         {
-            log = new SystemStreamLog();
+            getLog().info ("Attaching " + artifact.getFile() );
+            projectHelper.attachArtifact( this.project, artifact.getType(), artifact.getClassifier(),
+                                          artifact.getFile() );
         }
-
-        return log;
-    }
-
-    public void setLog( final Log log )
-    {
-        this.log = log;
     }
 
     private void copyFile( final File sourceFile, final File destFile )
@@ -180,6 +189,24 @@ public class MainArtifactGoal
             {
                 throw new MojoFailureException( "Failed to copy artifact from: " + sourceFile + " to: " + destFile
                     + ". Reason: " + e, e );
+            }
+        }
+    }
+
+
+    private void validateArtifacts()
+                    throws MojoFailureException
+    {
+        // check unique of types and classifiers
+        Set<String> extensionClassifiers = new HashSet<String>();
+        for ( Artifact artifact : artifacts )
+        {
+            String extensionClassifier = artifact.getType() + ":" + artifact.getClassifier();
+
+            if ( !extensionClassifiers.add( extensionClassifier ) )
+            {
+                throw new MojoFailureException( "The artifact with same type and classifier: " + extensionClassifier
+                                                                + " is used more than once." );
             }
         }
     }
