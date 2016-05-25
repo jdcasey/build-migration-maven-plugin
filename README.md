@@ -10,7 +10,7 @@ The `main-artifact` goal can set the file of the project's main artifact and mai
 
 | Parameters | Type | Required | Description |
 | ---------- | ---- | -------- | ----------- |
-| mainArtifact | String | Yes | File path to the new main artifact to deploy |
+| mainArtifact | String | No | File path to the new main artifact to deploy |
 | mainPom | String | No | File path to the replacement main pom to deploy |
 | artifacts | Artifact[] | No | Attach an array of artifacts to the project |
 

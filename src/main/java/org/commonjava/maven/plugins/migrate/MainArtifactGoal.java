@@ -45,7 +45,7 @@ public class MainArtifactGoal extends AbstractMojo
     /**
      * The file that should be captured as the current project's main artifact output.
      */
-    @Parameter ( required = true )
+    @Parameter
     private File mainArtifact;
 
     /**
@@ -53,6 +53,12 @@ public class MainArtifactGoal extends AbstractMojo
      */
     @Parameter
     private File mainPom;
+
+    /**
+     * Attach an array of artifacts to the project.
+     */
+    @Parameter
+    private Artifact[] artifacts;
 
     /**
      * Maven ProjectHelper.
@@ -75,77 +81,71 @@ public class MainArtifactGoal extends AbstractMojo
     @Parameter( property="mainArtifact.failIfMissing", defaultValue = "false")
     private boolean failIfMissing;
 
-    /**
-     * Attach an array of artifacts to the project.
-     */
-    @Parameter
-    private Artifact[] artifacts;
-
     public void execute()
         throws MojoExecutionException, MojoFailureException
     {
-        if ( mainArtifact.exists() )
+        if ( mainArtifact != null )
         {
-            if ( mainArtifact.isDirectory() )
+            if ( mainArtifact.exists() )
             {
-                getLog().error( "Main artifact " + mainArtifact + " is a directory." );
-                throw new MojoFailureException( "You are not allowed to set the main-artifact to a directory! Directories cannot be installed or deployed properly." );
-            }
-
-            final File existing = project.getArtifact().getFile();
-            if ( existing != null && !existing.isDirectory() )
-            {
-                getLog().warn( "NOTE: Discarding pre-existing main-artifact file:\n  "
-                    + project.getArtifact().getFile() );
-            }
-            if ( copyLocal )
-            {
-                final String ext = project.getArtifact().getArtifactHandler().getExtension();
-                final File dest = new File( targetDir, finalName + "." + ext );
-                targetDir.mkdirs ();
-
-                getLog().info( "Copying main artifact from: " + mainArtifact + " to: " + dest + " for project: "
-                    + project.getId() );
-
-                copyFile( mainArtifact, dest );
-
-                project.getArtifact().setFile( dest );
-
-                if (mainPom.exists())
+                if ( mainArtifact.isDirectory() )
                 {
-                    getLog().info( "Replacing mainPom " + project.getFile() + " with " + mainPom );
-                    project.setFile( mainPom );
+                    getLog().error( "Main artifact " + mainArtifact + " is a directory." );
+                    throw new MojoFailureException(
+                                    "You are not allowed to set the main-artifact to a directory! Directories cannot be installed or deployed properly." );
                 }
+
+                final File existing = project.getArtifact().getFile();
+                if ( existing != null && !existing.isDirectory() )
+                {
+                    getLog().warn( "NOTE: Discarding pre-existing main-artifact file:\n  " + project.getArtifact().getFile() );
+                }
+                if ( copyLocal )
+                {
+                    final String ext = project.getArtifact().getArtifactHandler().getExtension();
+                    final File dest = new File( targetDir, finalName + "." + ext );
+                    targetDir.mkdirs();
+
+                    getLog().info( "Copying main artifact from: " + mainArtifact + " to: " + dest + " for project: " + project.getId() );
+
+                    copyFile( mainArtifact, dest );
+
+                    project.getArtifact().setFile( dest );
+                }
+                else
+                {
+                    getLog().info( "Setting '" + mainArtifact + "' as main artifact file (" + project.getArtifact().getFile()
+                                                   + ") for project: " + project.getId() );
+
+                    project.getArtifact().setFile( mainArtifact );
+                }
+            }
+            else if ( failIfMissing )
+            {
+                throw new MojoFailureException( "Cannot find main-artifact source: '" + mainArtifact + "'" );
             }
             else
             {
-                getLog().info( "Setting '" + mainArtifact + "' as main artifact file ("
-                    + project.getArtifact().getFile() + ") for project: " + project.getId() );
-
-                project.getArtifact().setFile( mainArtifact );
-
-                if (mainPom.exists())
-                {
-                    getLog().info( "Replacing mainPom " + project.getFile() + " with " + mainPom );
-                    project.setFile( mainPom );
-                }
-           }
-        }
-        else if ( failIfMissing )
-        {
-            throw new MojoFailureException( "Cannot find main-artifact source: '" + mainArtifact + "'" );
-        }
-        else
-        {
-            getLog().warn( "CANNOT FIND: " + mainArtifact + ". NOT setting main artifact for project: "
-                + project.getId() );
+                getLog().warn( "CANNOT FIND: " + mainArtifact + ". NOT setting main artifact for project: " + project.getId() );
+            }
         }
 
-        for ( Artifact artifact : artifacts )
+        if ( mainPom != null && mainPom.exists() )
         {
-            getLog().info ("Attaching " + artifact.getFile() );
-            projectHelper.attachArtifact( this.project, artifact.getType(), artifact.getClassifier(),
-                                          artifact.getFile() );
+            getLog().info( "Replacing mainPom " + project.getFile() + " with " + mainPom );
+            project.setFile( mainPom );
+        }
+
+        if ( artifacts != null )
+        {
+            for ( Artifact artifact : artifacts )
+            {
+                getLog().info( "Attaching " + artifact.getFile() + " ( type: " +
+                                               artifact.getType() + ", classifier: " +
+                                               artifact.getClassifier() + " )" );
+                projectHelper.attachArtifact( this.project, artifact.getType(), artifact.getClassifier(),
+                                              artifact.getFile() );
+            }
         }
     }
 

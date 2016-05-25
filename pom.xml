@@ -69,12 +69,6 @@
       <version>3.4</version>
       <scope>provided</scope>
     </dependency>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.10</version>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
   <build>
@@ -99,6 +93,49 @@
           </execution>
         </executions>
       </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-invoker-plugin</artifactId>
+          <version>2.0.0</version>
+          <executions>
+            <execution>
+              <id>integration-test</id>
+              <goals>
+                <goal>install</goal>
+                <goal>integration-test</goal>
+                <goal>verify</goal>
+              </goals>
+              <configuration>
+                <properties>
+                  <testVersion>${project.version}</testVersion>
+                </properties>
+                <debug>true</debug>
+                <goals>
+                  <goal>clean</goal>
+                  <goal>package</goal>
+                </goals>
+                <!-- <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo> -->
+                <localRepositoryPath>${project.build.directory}/local-repo</localRepositoryPath>
+                <goals>
+                  <goal>install</goal>
+                </goals>
+                <!-- mavenExecutable>mvnDebug</mavenExecutable -->
+                <pomIncludes>
+                    <!-- <pomInclude>remote-plugin-management-invalid/pom.xml</pomInclude> -->
+                    <pomInclude>*/pom.xml</pomInclude>
+                </pomIncludes>
+                <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
+                <cloneClean>true</cloneClean>
+                <postBuildHookScript>verify</postBuildHookScript>
+                <settingsFile>src/it/settings.xml</settingsFile>
+                <addTestClassPath>true</addTestClassPath>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+
     </plugins>
   </build>
+
 </project>
