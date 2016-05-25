@@ -24,7 +24,7 @@
 
   <groupId>org.commonjava.maven.plugins</groupId>
   <artifactId>build-migration-maven-plugin</artifactId>
-  <version>0.5</version>
+  <version>1.0-SNAPSHOT</version>
 
   <packaging>maven-plugin</packaging>
 
